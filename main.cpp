@@ -9,13 +9,6 @@
 
 namespace bp = boost::process;
 
-class WaitingChild : public bp::child {
-public:
-  using bp::child::child;
-
-  ~WaitingChild() { this->wait(); }
-};
-
 class tqdm_proc {
 public:
   tqdm_proc(std::size_t total)
@@ -36,40 +29,12 @@ private:
   bp::child _child;
 };
 
-// TODO call _get_func only in operator++
-// TODO make work with unknown std::distance
-// TODO make it only forward iterable
-// TODO make it only once iterable
-template <typename tIter> class tqdm {
-public:
-  tqdm(tIter begin, tIter end)
-      : _begin(std::move(begin)), _end(std::move(end)),
-        _tqdm_proc(std::distance(_begin, _end)) {}
-
-  auto begin() {
-    return boost::make_transform_iterator(_begin, this->_get_func());
-  }
-
-  auto end() { return boost::make_transform_iterator(_end, this->_get_func()); }
-
-private:
-  tIter _begin;
-  tIter _end;
-
-  tqdm_proc _tqdm_proc;
-
-  auto _get_func() {
-    return [this](const auto &value) {
-      this->_tqdm_proc.tick();
-      return value;
-    };
-  }
-};
-
 void baz() {
-  std::vector<int> foo(100, 100);
-  for (auto i : tqdm(foo.begin(), foo.end())) {
+  tqdm_proc foo(100);
+  for (int i = 0; i < 100; ++i) {
+
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    foo.tick();
   }
 }
 
